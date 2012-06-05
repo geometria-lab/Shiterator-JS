@@ -1,15 +1,6 @@
-desc('Show tasks');
-task('default', [], function(params) {
-    var exec = require('child_process').exec;
-    exec('jake -T', function(error, stdout, stderr) {
-        console.log(stdout);
-    })
-});
-
-desc('Glue and compress javascript client');
-task('compressJs', [], function(params) {
-    var fs = require('fs'),
-        cp = require('child_process');
+desc('Glue and compile');
+task('compress', [], function(params) {
+    var fs = require('fs');
 
     var javascript = '(function() {\n';
 
@@ -19,20 +10,28 @@ task('compressJs', [], function(params) {
 		'jsontostring.js',
         'utils.js'
 	].forEach(function(file) {
-		javascript += fs.readFileSync('./clients/js/lib/' + file) + "\n\n";
+		javascript += fs.readFileSync('./library/shiterator/' + file) + "\n\n";
 	});
 
     javascript += '})();\n\n';
 
-    fs.writeFile('./clients/js/shiterator.js', javascript);
+    fs.writeFile('./library/shiterator.js', javascript);
 
     console.log('shiterator.js created.');
 
-    cp.exec('java -jar ' + __dirname + '/vendor/compiler.jar --compilation_level SIMPLE_OPTIMIZATIONS --js ' + __dirname + '/clients/js/shiterator.js --js_output_file ' + __dirname + '/clients/js/shiterator.min.js', function (error, stdout, stderr) {
-        if (error !== null) {
-            console.log(error);
-        } else {
-            console.log('shiterator.min.js created.');
+    var compressor = require('node-minify');
+
+    new compressor.minify({
+        type: 'gcc',
+        fileIn: './library/shiterator.js',
+        fileOut: './library/shiterator.min.js',
+        callback: function(err){
+            if (err) {
+                console.log(err);
+            } else {
+                var compressed = fs.readFileSync('./library/shiterator.min.js');
+                console.log('shiterator.min.js created. Rate ' + (javascript.length / compressed.length).toFixed(2) + '.');
+            }
         }
     });
 });
